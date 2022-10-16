@@ -13,8 +13,8 @@ spring:
     username: jisu
     password: wltn1313!
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
+    open-in-view: false
     defer-datasource-initialization: true
     hibernate.ddl-auto: create
     show-sql: true
@@ -26,4 +26,3 @@ spring:
     base-path: /api
     detection-strategy: annotated
   thymeleaf3.decoupled-logic: true
-
