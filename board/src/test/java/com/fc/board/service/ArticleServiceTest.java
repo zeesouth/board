@@ -3,7 +3,6 @@ package com.fc.board.service;
 import com.fc.board.domain.Article;
 import com.fc.board.domain.type.SearchType;
 import com.fc.board.dto.ArticleDto;
-import com.fc.board.dto.ArticleUpdateDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

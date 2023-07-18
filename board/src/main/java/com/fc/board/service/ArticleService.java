@@ -2,18 +2,13 @@ package com.fc.board.service;
 
 import com.fc.board.domain.type.SearchType;
 import com.fc.board.dto.ArticleDto;
-import com.fc.board.dto.ArticleUpdateDto;
 import com.fc.board.dto.ArticleWithCommentsDto;
-import com.fc.board.dto.response.ArticleWithCommentResponse;
 import com.fc.board.repository.ArticleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @RequiredArgsConstructor
 @Transactional
