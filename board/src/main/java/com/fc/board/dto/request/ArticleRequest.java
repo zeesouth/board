@@ -1,4 +1,4 @@
-package com.fc.board.request;
+package com.fc.board.dto.request;
 
 import com.fc.board.dto.ArticleDto;
 import com.fc.board.dto.UserAccountDto;
