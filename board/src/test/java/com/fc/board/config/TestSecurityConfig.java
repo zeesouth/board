@@ -21,7 +21,7 @@ public class TestSecurityConfig {
            "unoTest",
            "pw",
            "uno-test@email.com",
-           "uto-test",
+           "uno-test",
            "test memo"
         )));
     }

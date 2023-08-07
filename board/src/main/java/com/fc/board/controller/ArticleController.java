@@ -117,7 +117,6 @@ public class ArticleController {
             @PathVariable Long articleId,
             @AuthenticationPrincipal BoardPrincipal boardPrincipal
             ) {
-        // TODO: 인증 정보를 넣어줘야 한다.
         articleService.deleteArticle(articleId, boardPrincipal.getUsername());
 
         return "redirect:/articles";
