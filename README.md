@@ -38,7 +38,7 @@ Spring Boot
 
 ## 데모 페이지
 
-* https://board-jisu-7a6a0d0018ab.herokuapp.com/
+* 링크 추가 예정
 
 ## 질문, 건의
 
