@@ -1,6 +1,5 @@
 package com.fc.board.controller;
 
-import com.fc.board.dto.UserAccountDto;
 import com.fc.board.dto.request.ArticleCommentRequest;
 import com.fc.board.dto.security.BoardPrincipal;
 import com.fc.board.service.ArticleCommentService;
