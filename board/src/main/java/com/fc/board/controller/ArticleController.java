@@ -3,7 +3,6 @@ package com.fc.board.controller;
 
 import com.fc.board.domain.constant.FormStatus;
 import com.fc.board.domain.constant.SearchType;
-import com.fc.board.dto.UserAccountDto;
 import com.fc.board.dto.request.ArticleRequest;
 import com.fc.board.dto.response.ArticleResponse;
 import com.fc.board.dto.response.ArticleWithCommentsResponse;
