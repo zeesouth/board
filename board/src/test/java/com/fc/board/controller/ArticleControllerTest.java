@@ -1,11 +1,11 @@
 package com.fc.board.controller;
 
-import com.fc.board.config.SecurityConfig;
 import com.fc.board.config.TestSecurityConfig;
 import com.fc.board.domain.constant.FormStatus;
 import com.fc.board.domain.constant.SearchType;
 import com.fc.board.dto.ArticleDto;
 import com.fc.board.dto.ArticleWithCommentsDto;
+import com.fc.board.dto.HashtagDto;
 import com.fc.board.dto.UserAccountDto;
 import com.fc.board.dto.request.ArticleRequest;
 import com.fc.board.dto.response.ArticleResponse;
@@ -43,13 +43,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({TestSecurityConfig.class, FormDataEncoder.class})
 @WebMvcTest(ArticleController.class)
 class ArticleControllerTest {
+
     private final MockMvc mvc;
+
     private final FormDataEncoder formDataEncoder;
 
-    @MockBean
-    private ArticleService articleService;
-    @MockBean
-    private PaginationService paginationService;
+    @MockBean private ArticleService articleService;
+    @MockBean private PaginationService paginationService;
+
 
     ArticleControllerTest(
             @Autowired MockMvc mvc,
@@ -59,21 +60,23 @@ class ArticleControllerTest {
         this.formDataEncoder = formDataEncoder;
     }
 
+
     @DisplayName("[view][GET] 게시글 리스트 (게시판) 페이지 - 정상 호출")
     @Test
     void givenNothing_whenRequestingArticlesView_thenReturnsArticlesView() throws Exception {
-        // given
+        // Given
         given(articleService.searchArticles(eq(null), eq(null), any(Pageable.class))).willReturn(Page.empty());
         given(paginationService.getPaginationBarNumbers(anyInt(), anyInt())).willReturn(List.of(0, 1, 2, 3, 4));
 
-        // when & then
+        // When & Then
         mvc.perform(get("/articles"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(view().name("articles/index"))
                 .andExpect(model().attributeExists("articles"))
-                .andExpect(model().attributeExists("paginationBarNumbers"));
-
+                .andExpect(model().attributeExists("paginationBarNumbers"))
+                .andExpect(model().attributeExists("searchTypes"))
+                .andExpect(model().attribute("searchTypeHashtag", SearchType.HASHTAG));
         then(articleService).should().searchArticles(eq(null), eq(null), any(Pageable.class));
         then(paginationService).should().getPaginationBarNumbers(anyInt(), anyInt());
     }
@@ -81,24 +84,23 @@ class ArticleControllerTest {
     @DisplayName("[view][GET] 게시글 리스트 (게시판) 페이지 - 검색어와 함께 호출")
     @Test
     void givenSearchKeyword_whenSearchingArticlesView_thenReturnsArticlesView() throws Exception {
-        // given
+        // Given
         SearchType searchType = SearchType.TITLE;
         String searchValue = "title";
         given(articleService.searchArticles(eq(searchType), eq(searchValue), any(Pageable.class))).willReturn(Page.empty());
         given(paginationService.getPaginationBarNumbers(anyInt(), anyInt())).willReturn(List.of(0, 1, 2, 3, 4));
 
-        // when & then
+        // When & Then
         mvc.perform(
-                get("/articles")
-                        .queryParam("searchType", searchType.name())
-                        .queryParam("searchValue", searchValue)
+                        get("/articles")
+                                .queryParam("searchType", searchType.name())
+                                .queryParam("searchValue", searchValue)
                 )
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(view().name("articles/index"))
                 .andExpect(model().attributeExists("articles"))
                 .andExpect(model().attributeExists("searchTypes"));
-
         then(articleService).should().searchArticles(eq(searchType), eq(searchValue), any(Pageable.class));
         then(paginationService).should().getPaginationBarNumbers(anyInt(), anyInt());
     }
@@ -134,42 +136,42 @@ class ArticleControllerTest {
 
     @DisplayName("[view][GET] 게시글 페이지 - 인증 없을 땐 로그인 페이지로 이동")
     @Test
-    void givenNothing_whenRequestArticlePage_thenRedirectsToLoginPage() throws Exception {
-        // given
+    void givenNothing_whenRequestingArticlePage_thenRedirectsToLoginPage() throws Exception {
+        // Given
         long articleId = 1L;
 
-        // when & then
-        mvc.perform(get("/articles/"+articleId))
+        // When & Then
+        mvc.perform(get("/articles/" + articleId))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
-
+        then(articleService).shouldHaveNoInteractions();
         then(articleService).shouldHaveNoInteractions();
     }
 
     @WithMockUser
     @DisplayName("[view][GET] 게시글 페이지 - 정상 호출, 인증된 사용자")
     @Test
-    void givenNothing_whenRequestingArticleView_thenReturnsArticleView() throws Exception {
-        // given
+    void givenAuthorizedUser_whenRequestingArticleView_thenReturnsArticleView() throws Exception {
+        // Given
         Long articleId = 1L;
         long totalCount = 1L;
         given(articleService.getArticleWithComments(articleId)).willReturn(createArticleWithCommentsDto());
         given(articleService.getArticleCount()).willReturn(totalCount);
 
-        // when & then
-        mvc.perform(get("/articles/1"))
+        // When & Then
+        mvc.perform(get("/articles/" + articleId))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(view().name("articles/detail"))
                 .andExpect(model().attributeExists("article"))
                 .andExpect(model().attributeExists("articleComments"))
-                .andExpect(model().attributeExists("articleComments"))
-                .andExpect(model().attribute("totalCount", totalCount));
+                .andExpect(model().attribute("totalCount", totalCount))
+                .andExpect(model().attribute("searchTypeHashtag", SearchType.HASHTAG));
         then(articleService).should().getArticleWithComments(articleId);
         then(articleService).should().getArticleCount();
     }
 
-    @Disabled
+    @Disabled("구현 중")
     @DisplayName("[view][GET] 게시글 검색 전용 페이지 - 정상 호출")
     @Test
     void givenNothing_whenRequestingArticleSearchView_thenReturnsArticleSearchView() throws Exception {
@@ -185,47 +187,51 @@ class ArticleControllerTest {
     @DisplayName("[view][GET] 게시글 해시태그 검색 페이지 - 정상 호출")
     @Test
     void givenNothing_whenRequestingArticleSearchHashtagView_thenReturnsArticleSearchHashtagView() throws Exception {
-        // given
+        // Given
         List<String> hashtags = List.of("#java", "#spring", "#boot");
-        given(articleService.searchArticlesViaHashtag(eq(null),any(Pageable.class))).willReturn(Page.empty());
-        given(paginationService.getPaginationBarNumbers(anyInt(), anyInt())).willReturn(List.of(1, 2, 3, 4, 5));
+        given(articleService.searchArticlesViaHashtag(eq(null), any(Pageable.class))).willReturn(Page.empty());
         given(articleService.getHashtags()).willReturn(hashtags);
+        given(paginationService.getPaginationBarNumbers(anyInt(), anyInt())).willReturn(List.of(1, 2, 3, 4, 5));
 
-        // when & then
+        // When & Then
         mvc.perform(get("/articles/search-hashtag"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(view().name("articles/search-hashtag"))
-                .andExpect(model().attribute("articles",Page.empty()))
+                .andExpect(model().attribute("articles", Page.empty()))
                 .andExpect(model().attribute("hashtags", hashtags))
                 .andExpect(model().attributeExists("paginationBarNumbers"))
                 .andExpect(model().attribute("searchType", SearchType.HASHTAG));
         then(articleService).should().searchArticlesViaHashtag(eq(null), any(Pageable.class));
         then(articleService).should().getHashtags();
-        then(paginationService).should().getPaginationBarNumbers(anyInt(),anyInt());
+        then(paginationService).should().getPaginationBarNumbers(anyInt(), anyInt());
     }
 
     @DisplayName("[view][GET] 게시글 해시태그 검색 페이지 - 정상 호출, 해시태그 입력")
     @Test
     void givenHashtag_whenRequestingArticleSearchHashtagView_thenReturnsArticleSearchHashtagView() throws Exception {
-        // given
+        // Given
         String hashtag = "#java";
         List<String> hashtags = List.of("#java", "#spring", "#boot");
-        given(articleService.searchArticlesViaHashtag(eq(hashtag),any(Pageable.class))).willReturn(Page.empty());
-        given(paginationService.getPaginationBarNumbers(anyInt(), anyInt())).willReturn(List.of(1, 2, 3, 4, 5));
+        given(articleService.searchArticlesViaHashtag(eq(hashtag), any(Pageable.class))).willReturn(Page.empty());
         given(articleService.getHashtags()).willReturn(hashtags);
+        given(paginationService.getPaginationBarNumbers(anyInt(), anyInt())).willReturn(List.of(1, 2, 3, 4, 5));
 
-        // when & then
-        mvc.perform(get("/articles/search-hashtag").queryParam("searchValue" ,hashtag))
+        // When & Then
+        mvc.perform(
+                        get("/articles/search-hashtag")
+                                .queryParam("searchValue", hashtag)
+                )
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(view().name("articles/search-hashtag"))
-                .andExpect(model().attribute("articles",Page.empty()))
+                .andExpect(model().attribute("articles", Page.empty()))
                 .andExpect(model().attribute("hashtags", hashtags))
-                .andExpect(model().attributeExists("paginationBarNumbers"));
+                .andExpect(model().attributeExists("paginationBarNumbers"))
+                .andExpect(model().attribute("searchType", SearchType.HASHTAG));
         then(articleService).should().searchArticlesViaHashtag(eq(hashtag), any(Pageable.class));
         then(articleService).should().getHashtags();
-        then(paginationService).should().getPaginationBarNumbers(anyInt(),anyInt());
+        then(paginationService).should().getPaginationBarNumbers(anyInt(), anyInt());
     }
 
     @WithMockUser
@@ -247,7 +253,7 @@ class ArticleControllerTest {
     @Test
     void givenNewArticleInfo_whenRequesting_thenSavesNewArticle() throws Exception {
         // Given
-        ArticleRequest articleRequest = ArticleRequest.of("new title", "new content", "#new");
+        ArticleRequest articleRequest = ArticleRequest.of("new title", "new content");
         willDoNothing().given(articleService).saveArticle(any(ArticleDto.class));
 
         // When & Then
@@ -263,12 +269,23 @@ class ArticleControllerTest {
         then(articleService).should().saveArticle(any(ArticleDto.class));
     }
 
+    @DisplayName("[view][GET] 게시글 수정 페이지 - 인증 없을 땐 로그인 페이지로 이동")
+    @Test
+    void givenNothing_whenRequesting_thenRedirectsToLoginPage() throws Exception {
+        // Given
+        long articleId = 1L;
 
+        // When & Then
+        mvc.perform(get("/articles/" + articleId + "/form"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+        then(articleService).shouldHaveNoInteractions();
+    }
 
     @WithMockUser
     @DisplayName("[view][GET] 게시글 수정 페이지 - 정상 호출, 인증된 사용자")
     @Test
-    void givenNothing_whenRequesting_thenReturnsUpdatedArticlePage() throws Exception {
+    void givenAuthorizedUser_whenRequesting_thenReturnsUpdatedArticlePage() throws Exception {
         // Given
         long articleId = 1L;
         ArticleDto dto = createArticleDto();
@@ -290,7 +307,7 @@ class ArticleControllerTest {
     void givenUpdatedArticleInfo_whenRequesting_thenUpdatesNewArticle() throws Exception {
         // Given
         long articleId = 1L;
-        ArticleRequest articleRequest = ArticleRequest.of("new title", "new content", "#new");
+        ArticleRequest articleRequest = ArticleRequest.of("new title", "new content");
         willDoNothing().given(articleService).updateArticle(eq(articleId), any(ArticleDto.class));
 
         // When & Then
@@ -333,7 +350,7 @@ class ArticleControllerTest {
                 createUserAccountDto(),
                 "title",
                 "content",
-                "#java"
+                Set.of(HashtagDto.of("java"))
         );
     }
 
@@ -344,27 +361,26 @@ class ArticleControllerTest {
                 Set.of(),
                 "title",
                 "content",
-                "#java",
+                Set.of(HashtagDto.of("java")),
                 LocalDateTime.now(),
-                "jisu",
+                "uno",
                 LocalDateTime.now(),
-                "jisu"
+                "uno"
         );
     }
 
     private UserAccountDto createUserAccountDto() {
         return UserAccountDto.of(
-                "jisu",
+                "uno",
                 "pw",
-                "jisu@mail.com",
-                "Jisu",
+                "uno@mail.com",
+                "Uno",
                 "memo",
                 LocalDateTime.now(),
-                "jisu",
+                "uno",
                 LocalDateTime.now(),
-                "jisu"
+                "uno"
         );
     }
-
 
 }
